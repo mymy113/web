@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>💚 NCT DREAM 전곡 소트 💚(~BEAT IT UP)</title>
+
+<!-- 프리텐다드 웹폰트 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css">
+
+<style>
+body {
+  font-family: 'Pretendard', sans-serif;
+  background: #111;
+  color: #fff;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 { font-size: 2rem; margin-bottom:5px; }
+.subtitle { font-size: 0.9rem; color:#aaa; margin-bottom:15px; }
+
+#progress {
+  background: #333;
+  border-radius: 6px;
+  width: 80%;
+  height: 12px;
+  margin: 0 auto 15px;
+  overflow: hidden;
+}
+.progress-bar {
+  background: #00ff99;
+  width: 0%;
+  height: 100%;
+  transition: width 0.3s;
+}
+
+#battle {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: #222;
+  border-radius: 10px;
+  width: 150px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.card:hover { transform: scale(1.05); }
+.card.selected { box-shadow: 0 0 15px #00ff99; }
+
+.card img.thumb { width: 100%; border-top-left-radius: 10px; border-top-right-radius: 10px; }
+.card-name { padding: 5px; font-size: 0.9rem; }
+
+#result { margin-top:20px; }
+.result-item { margin:5px 0; }
+
+/* 영상 모달 */
+#videoModal {
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.9);
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+  flex-direction:column;
+}
+#videoModal iframe { width:80%; max-width:560px; height:315px; border-radius:10px; }
+#closeVideo {
+  margin-top:20px;
+  padding:8px 16px;
+  font-size:1rem;
+  border:none;
+  border-radius:5px;
+  background:#00ff99;
+  cursor:pointer;
+  color:#111;
+}
+</style>
+</head>
+<body>
+
+<h1>💚 NCT DREAM 전곡 소트 💚</h1>
+<div class="subtitle">[ ~BEAT IT UP🥊] @leeazws</div>
+<div id="progress"><div class="progress-bar"></div></div>
+<div id="battle"></div>
+<div id="result"></div>
+
+<!-- 영상 모달 -->
+<div id="videoModal">
+  <iframe id="videoFrame" frameborder="0" allowfullscreen></iframe>
+  <button id="closeVideo">닫기</button>
+</div>
+
+<script>
+// 🎵 전곡 + 유튜브 ID
+const songs = [
+  { name: "Chewing Gum", id: "fwmvF5ffmhg" },
+  { name: "마지막 첫사랑 (My First and Last)", id: "4pUc7SD0PmU" },
+  { name: "덩크슛 (Dunk Shot)", id: "cm5PbcKlvMU" },
+  { name: "We Young", id: "h3aP1cxwCyk" },
+  { name: "La La Love", id: "dQCYj2qTU9k" },
+  { name: "같은 시간 같은 자리 (Walk You Home)", id: "NOieK5hNXMo" },
+  { name: "My Page", id: "4AxjXuReUIs" },
+  { name: "Trigger The Fever", id: "BrFyTUakTL8" },
+  { name: "Joy", id: "VMMl0DopcdM" },
+  { name: "Go", id: "cD8SYW8rjaQ" },
+  { name: "We Go Up", id: "LV1Es22E0RI" },
+  { name: "1, 2, 3", id: "8SZzKS5yVuU" },
+  { name: "너와 나 (Beautiful Time)", id: "LoDsQIu2c8Q" },
+  { name: "Drippin'", id: "VGwOCKu5kRA" },
+  { name: "Dear Dream", id: "4j_HQoJOeTg" },
+  { name: "사랑한단 뜻이야 (Candle Light)", id: "KyVQBd4IZ_k" },
+  { name: "Don't Need Your Love", id: "Or66HjpTXEo" },
+  { name: "Fireflies", id: "3gpoXiCQ45A" },
+  { name: "BOOM", id: "X-iJZ0gfKPo" },
+  { name: "STRONGER", id: "g2a-sFAHzxo" },
+  { name: "119", id: "LJ7GBF1s40M" },
+  { name: "사랑이 좀 어려워 (Bye My First...)", id: "4dxICH50SO8" },
+  { name: "Best Friend", id: "bUKWmDodsMw" },
+  { name: "Dream Run", id: "cxWjFy8nfBA" },
+  { name: "Ridin’", id: "vofjeJvRT9c" },
+  { name: "Quiet Down", id: "QYcw4W8kr8k" },
+  { name: "내게 말해줘 (7 Days)", id: "l1vl8dENUDw" },
+  { name: "사랑은 또다시 (Love Again)", id: "DhSezlkvQl4" },
+  { name: "너의 자리 (Puzzle Piece)", id: "2xosIrR7i5I" },
+  { name: "맛 (Hot Sauce)", id: "U3XsXjDK8yk" },
+  { name: "Diggity", id: "5cpqXChdTTs" },
+  { name: "고래 (Dive Into You)", id: "R_XB-r-2fcM" }
+];
+
+let battleCount = 0;
+let totalBattles = songs.length * (songs.length - 1) / 2;
+
+// 진행률
+function renderProgress(){
+  const percent = ((battleCount/totalBattles)*100).toFixed(1);
+  document.getElementById("progress").innerHTML = `
+    진행: ${battleCount} / ${totalBattles} (${percent}%)
+    <div class="progress-bar" style="width:${percent}%"></div>
+  `;
+}
+
+// 랜덤 2곡 선택
+function getRandomPair(){
+  let idx1 = Math.floor(Math.random()*songs.length);
+  let idx2;
+  do { idx2 = Math.floor(Math.random()*songs.length); } while(idx2===idx1);
+  return [songs[idx1], songs[idx2]];
+}
+
+// 배틀 렌더링
+function renderBattle(){
+  const [song1, song2] = getRandomPair();
+  const battleDiv = document.getElementById("battle");
+  battleDiv.innerHTML = "";
+
+  [song1,song2].forEach(song=>{
+    const card = document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <img src="https://img.youtube.com/vi/${song.id}/0.jpg" class="thumb">
+      <div class="card-name">${song.name}</div>
+    `;
+
+    const thumb = card.querySelector(".thumb");
+
+    // 썸네일 클릭 → 영상 모달
+    thumb.onclick = e=>{
+      e.stopPropagation();
+      document.getElementById("videoFrame").src=`https://www.youtube.com/embed/${song.id}?autoplay=1`;
+      document.getElementById("videoModal").style.display="flex";
+    };
+
+    // 카드 클릭 → 선택
+    card.onclick = ()=>{
+      document.querySelectorAll(".card").forEach(c=>c.classList.remove("selected"));
+      card.classList.add("selected");
+      battleCount++;
+      renderProgress();
+      if(battleCount>=totalBattles){
+        showResult();
+      } else { renderBattle(); }
+    };
+
+    battleDiv.appendChild(card);
+  });
+}
+
+// 결과 표시
+function showResult(){
+  const resultDiv = document.getElementById("result");
+  resultDiv.innerHTML="<h2>결과</h2>";
+  songs.forEach((song,i)=>{
+    resultDiv.innerHTML+=`<div class="result-item">${i+1}. ${song.name}</div>`;
+  });
+}
+
+// 영상 모달 닫기
+document.getElementById("closeVideo").onclick = ()=>{
+  document.getElementById("videoFrame").src="";
+  document.getElementById("videoModal").style.display="none";
+};
+
+// 초기 실행
+renderProgress();
+renderBattle();
+</script>
+
+</body>
+</html>
